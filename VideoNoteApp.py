@@ -1,3 +1,7 @@
+import os
+import shutil
+import time
+
 import streamlit as st
 import tempfile
 import cv2
@@ -6,7 +10,9 @@ import io
 from docx import Document
 from docx.shared import Inches
 from streamlit_drawable_canvas import st_canvas
-
+from transcript import transcribe_audio
+from transcript import transcribe_audio
+from audioRecord import audio_record
 class VideoNoteApp:
     def __init__(self):
         self.initialize_session_state()
@@ -122,7 +128,62 @@ class VideoNoteApp:
                         combined_image.save(img_byte_arr, format="PNG")
                         st.session_state.edited_image = img_byte_arr.getvalue()
 
-            annotation = st.text_area("Enter annotation")
+            # 初始化 session state
+            if 'recording' not in st.session_state:
+                st.session_state.recording = False
+            if 'annotation' not in st.session_state:
+                st.session_state.annotation = ""
+            if 'transcribed' not in st.session_state:
+                st.session_state.transcribed = False
+
+            # 创建文本输入框
+            annotation_placeholder = st.empty()
+            annotation = annotation_placeholder.text_input("Enter Annotation", value=st.session_state.annotation,
+                                                           key="text_input")
+            # 创建录音按钮
+            start_button = st.button('Start Recording')
+            # 如果按下开始按钮，则开始录音
+            if start_button:
+                st.session_state.recording = True
+                st.session_state.transcribed = False  # 当开始新的录音时，重置 transcribed 标志
+
+            # 如果正在录音，则开始录音过程
+            if st.session_state.recording:
+                file_path = 'video/audio.wav'
+                audio_record(file_path)
+                countdown_placeholder = st.empty()
+                for i in range(10, 0, -1):
+                    countdown_placeholder.markdown(f"Notice,The record will end after {i} seconds")
+                    time.sleep(1)
+                countdown_placeholder.empty()  # 清除倒计时文本
+                st.session_state.recording = False  # 停止录音
+                ##st.success("Audio saved successfully.")
+            audio_path = "video/audio.wav"
+
+            # 定义一个函数来处理转录结
+            def handle_transcription():
+                if not st.session_state.transcribed and not st.session_state.recording:  # 只有在没有录音且尚未转录的情况下才进行转录
+                    recognized_text = transcribe_audio(audio_path)
+                    st.session_state.transcribed = True
+
+                    pcm_file_path1 = "speech-vad-demo/pcm/16k_1.pcm"
+                    if os.path.exists(pcm_file_path1):
+                        os.remove(pcm_file_path1)
+                    output_pcm_dir = ".\\speech-vad-demo\\output_pcm\\"
+                    if os.path.exists(output_pcm_dir) and os.path.isdir(output_pcm_dir):
+                        shutil.rmtree(output_pcm_dir)
+                        os.makedirs(output_pcm_dir)
+
+                    return recognized_text
+                return None
+
+            # 调用处理转录结果的函数
+            recognized_text = handle_transcription()
+            if st.session_state.transcribed and recognized_text is not None:
+                st.markdown(
+                    f"Transcript result: **<span style='color: red;'>{recognized_text}</span>**，You can choose to copy it into the annotation.",
+                    unsafe_allow_html=True)
+
             if st.button("Add annotation") and st.session_state.edited_image and annotation:
                 self.add_snapshot(st.session_state.edited_image, int(seconds_slider), annotation)
                 st.success(f"Annotation added: {int(seconds_slider)} seconds - {annotation}")
