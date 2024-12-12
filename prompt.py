@@ -63,6 +63,14 @@ By following these guidelines, you can effectively transform video transcripts i
             Transcript:
             """
 
+        elif ID == "wordcloud2":
+            prompt_text = """
+                   Generate a list of 15 to 18 related English keywords for the following item. 
+                   Notice!At least 10 words are required. 
+                   Separate the keywords with commas:
+                   """
+
+
         elif ID == "mindmap":
             prompt_text = """
             Please analyze the following transcript and identify key concepts, themes, and their interconnections. Create a structured mind map format that supports multiple intersecting points, multiple directions, and multiple pathways. Each node should represent a unique concept, and connections should be drawn between related nodes to reflect the complexity and interrelatedness of the ideas. Use the following format: 'Node 1 - Node 2, Node 2 - Node 3, ...'. Ensure the generated mind map includes at least 3 to 6 core nodes with complex interconnections. The length of each connection should not be more than 7 .Return only the connections in this exact format, with no additional text or commentary.

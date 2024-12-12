@@ -2,6 +2,7 @@ import streamlit as st
 from VideoNoteApp import VideoNoteApp
 from VideoSummaryApp import VideoSummaryApp
 
+
 def main():
     # 设置页面布局
     st.set_page_config(layout="wide")
@@ -19,7 +20,7 @@ def main():
 
         note_app.load_video()
 
-        summary_app.load_session_state() 
+        summary_app.load_session_state()
 
         # 生成 Transcript
         if st.button("Generate Transcript"):
@@ -38,7 +39,7 @@ def main():
 
         # 生成词云
         if st.button("Generate WordCloud"):
-            summary_app.generate_wordcloud(width=800, height=400)    
+            summary_app.generate_wordcloud(width=800, height=400)
         summary_app.display_wordcloud(figsize=(5, 3))
 
         #生成思维导图
@@ -51,6 +52,7 @@ def main():
         st.markdown("## Take notes")
         note_app.take_notes()
         note_app.export_notes()
+
 
 if __name__ == "__main__":
     main()

@@ -4,6 +4,8 @@ import base64
 import json
 import shutil
 import time
+from pydub import AudioSegment
+from pydub.utils import which
 
 
 class BaiduVoiceToTxt():
@@ -13,6 +15,10 @@ class BaiduVoiceToTxt():
         self.pcm_path = ".\\speech-vad-demo\\pcm\\16k_1.pcm"
         # 定义pcm文件被切割后，分割成的文件输出到的目录。speech-vad-demo固定好的，没的选
         self.output_pcm_path = ".\\speech-vad-demo\\output_pcm\\"
+        # 手动告诉 pydub ffmpeg 的位置
+        ffmpeg_path = r"D:\Desktop\Vedio-Summarizer\Vedio-Summarizer\ffmpeg\bin\ffmpeg.exe"
+        AudioSegment.converter = ffmpeg_path
+        print(f"FFmpeg path set for pydub: {AudioSegment.converter}")
 
     # 百度AI接口只接受pcm格式，所以需要转换格式
     # 此函数用于将要识别的mp3文件转换成pcm格式，并输出为.\speech-vad-demo\pcm\16k_1.pcm
@@ -21,11 +27,12 @@ class BaiduVoiceToTxt():
         # 如果.\speech-vad-demo\pcm\16k_1.pcm文件已存在，则先将其删除
         if os.path.isfile(f"{self.pcm_path}"):
             os.remove(f"{self.pcm_path}")
+        ffmpeg_path = r"D:\Desktop\Vedio-Summarizer\Vedio-Summarizer\ffmpeg\bin\ffmpeg.exe"
         # 调用系统命令，将文件转换成pcm格式，并输出为.\speech-vad-demo\pcm\16k_1.pcm
-        change_file_format_command = f".\\ffmpeg\\bin\\ffmpeg.exe -y  -i {file_name}  -acodec pcm_s16le -f s16le -ac 1 -ar 16000 {self.pcm_path}"
+        change_file_format_command = f"{ffmpeg_path} -y -i {file_name} -acodec pcm_s16le -f s16le -ac 1 -ar 16000 {self.pcm_path}"
         os.system(change_file_format_command)
 
-    # 百度AI接口最长只接受60秒的音视，所以需要切割
+    
     # 此函数用于将.\speech-vad-demo\pcm\16k_1.pcm切割
     def devide_video(self):
         # 如果切割输出目录.\speech-vad-demo\output_pcm\已存在，那其中很可能已有文件，先将其清空
@@ -42,41 +49,6 @@ class BaiduVoiceToTxt():
 
         os.chdir("..\\")
 
-    # 此函数用于将.\speech-vad-demo\output_pcm\下的文件的文件名的时间格式化成0:00:00,000形式
-    def format_time(self, msecs):
-        hour_msecs = 60 * 60 * 1000
-        minute_msecs = 60 * 1000
-        second_msecs = 1000
-        # 文件名的时间是毫秒需要先转成秒。+500是为了四舍五入，//是整除
-        # msecs = (msecs + 500) // 1000
-        # 小时
-        hour = msecs // hour_msecs
-        if hour < 10:
-            hour = f"0{hour}"
-        # 扣除小时后剩余毫秒数
-        hour_left_msecs = msecs % hour_msecs
-        # 分钟
-        minute = hour_left_msecs // minute_msecs
-        # 如果不足10分钟那在其前补0凑成两位数格式
-        if minute < 10:
-            minute = f"0{minute}"
-        # 扣除分钟后剩余毫秒数
-        minute_left_msecs = hour_left_msecs % minute_msecs
-        # 秒
-        second = minute_left_msecs // second_msecs
-        # 如果秒数不足10秒，一样在其前补0凑足两位数格式
-        if second < 10:
-            second = f"0{second}"
-        # 扣除秒后剩余毫秒数
-        second_left_msecs = minute_left_msecs % second_msecs
-        # 如果不足10毫秒或100毫秒，在其前补0凑足三位数格式
-        if second_left_msecs < 10:
-            second_left_msecs = f"00{second_left_msecs}"
-        elif second_left_msecs < 100:
-            second_left_msecs = f"0{second_left_msecs}"
-        # 格式化成00:00:00,000形式，并返回
-        time_format = f"{hour}:{minute}:{second},{second_left_msecs}"
-        return time_format
 
     # 此函数用于申请访问ai接口的access_token
     def get_access_token(self):

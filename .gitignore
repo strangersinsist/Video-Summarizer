@@ -1,3 +1,9 @@
 /.env
 /mindmap.html
 /__pycache__
+/.venv
+/ffmpeg
+/lib
+/weight/edge_sam.pth
+/weight/yolov5l.pt
+/speech-vad-demo
