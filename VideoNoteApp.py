@@ -2,6 +2,7 @@ import os
 import shutil
 import time
 
+import numpy as np
 import streamlit as st
 import tempfile
 import cv2
@@ -10,9 +11,13 @@ import io
 from docx import Document
 from docx.shared import Inches
 from streamlit_drawable_canvas import st_canvas
+
+from sideBar import sidebar_image_processing
 from transcript import transcribe_audio
 from transcript import transcribe_audio
 from audioRecord import audio_record
+
+
 class VideoNoteApp:
     def __init__(self):
         self.initialize_session_state()
@@ -28,8 +33,14 @@ class VideoNoteApp:
             st.session_state.current_frame_pos = 0
         if "canvas_key" not in st.session_state:
             st.session_state.canvas_key = 0
-        if "url" not in st.session_state:  
+        if "url" not in st.session_state:
             st.session_state.url = 0
+        if "api_key" not in st.session_state:
+            st.session_state.api_key = "sk-104b5033564947be8d1ff74cc154b43a"
+        if "points" not in st.session_state:
+            st.session_state.points = []
+        if "labels" not in st.session_state:
+            st.session_state.labels = []
 
     def add_snapshot(self, image_data, video_time, annotation):
         st.session_state.snapshots.append({"image": image_data, "time": video_time, "annotation": annotation})
@@ -59,7 +70,7 @@ class VideoNoteApp:
             tfile = tempfile.NamedTemporaryFile(delete=False)
             tfile.write(uploaded_video.read())
             st.session_state.video_file = tfile.name
-            
+
             # Get the video file name and extract the video ID
             video_filename = uploaded_video.name
             video_id = video_filename.split('.')[0]  # Get the filename without the extension
@@ -100,7 +111,12 @@ class VideoNoteApp:
                     st.image(img, caption=f"Current Frame: {int(seconds_slider)} seconds", use_column_width=True)
                     st.markdown(f"**Video Time: {int(seconds_slider)} seconds**")
 
-                    drawing_mode = st.selectbox("Select drawing mode", ("freedraw", "line", "rect", "circle", "transform"))
+                    # 调用侧边栏图像处理功能
+                    sidebar_image_processing(img)
+
+
+                    drawing_mode = st.selectbox("Select drawing mode",
+                                                ("freedraw", "line", "rect", "circle", "transform"))
                     stroke_width = st.slider("Brush width: ", 1, 25, 3)
                     color = st.color_picker("Pick a color: ", "#000000")
 
@@ -108,7 +124,8 @@ class VideoNoteApp:
                         fill_color="rgba(255, 165, 0, 0.3)",
                         stroke_width=stroke_width,
                         stroke_color=color,
-                        background_image=Image.open(st.session_state.edited_image).convert("RGBA") if st.session_state.edited_image else None,
+                        background_image=Image.open(st.session_state.edited_image).convert(
+                            "RGBA") if st.session_state.edited_image else None,
                         update_streamlit=True,
                         height=360,
                         drawing_mode=drawing_mode,
@@ -127,6 +144,8 @@ class VideoNoteApp:
                         img_byte_arr = io.BytesIO()
                         combined_image.save(img_byte_arr, format="PNG")
                         st.session_state.edited_image = img_byte_arr.getvalue()
+
+
 
             # 初始化 session state
             if 'recording' not in st.session_state:
@@ -190,19 +209,22 @@ class VideoNoteApp:
 
             self.display_notes()
 
+
     def display_notes(self):
         st.markdown("### Added Annotations")
         with st.container():
             for i, snapshot in enumerate(st.session_state.snapshots):
-                with st.expander(f"Annotation {i+1}: {snapshot['time']} seconds"):
+                with st.expander(f"Annotation {i + 1}: {snapshot['time']} seconds"):
                     st.image(snapshot["image"], caption=f"{snapshot['time']} seconds - {snapshot['annotation']}")
-                    new_annotation = st.text_area(f"Edit Annotation {i+1}", value=snapshot["annotation"], key=f"edit_{i}")
+                    new_annotation = st.text_area(f"Edit Annotation {i + 1}", value=snapshot["annotation"],
+                                                  key=f"edit_{i}")
                     if st.button("Update Annotation", key=f"update_{i}"):
                         self.update_annotation(i, new_annotation)
                         st.success("Annotation updated")
                     if st.button("Delete", key=f"delete_{i}"):
                         self.delete_snapshot(i)
                         st.experimental_rerun()
+
 
     def export_notes(self):
         st.markdown("## Export Notes")
